@@ -394,6 +394,27 @@ export default function AppScreen() {
     }
   }
 
+  async function handleForgotPassword() {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail) {
+      Alert.alert('Email required', 'Enter your email address first, then tap Forgot password.');
+      return;
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail);
+
+    if (error) {
+      Alert.alert('Password reset failed', error.message);
+      return;
+    }
+
+    Alert.alert(
+      'Password reset sent',
+      'Check your email for the password reset link.'
+    );
+  }
+
   function resetFlightForm() {
     setFlightDate('');
     setFrom('');
@@ -876,6 +897,12 @@ export default function AppScreen() {
                   {mode === 'login' ? 'Login' : 'Create account'}
                 </Text>
               </TouchableOpacity>
+
+              {mode === 'login' && (
+                <TouchableOpacity style={styles.forgotButton} onPress={handleForgotPassword}>
+                  <Text style={styles.forgotButtonText}>Forgot password?</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             <Text style={styles.note}>
@@ -1158,6 +1185,15 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: 'white',
     fontSize: 16,
+    fontWeight: '900',
+  },
+  forgotButton: {
+    padding: 14,
+    alignItems: 'center',
+  },
+  forgotButtonText: {
+    color: '#2563eb',
+    fontSize: 15,
     fontWeight: '900',
   },
   secondaryButton: {
