@@ -4,7 +4,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as XLSX from 'xlsx';
 import * as Sharing from 'expo-sharing';
 import { supabase } from '@/lib/supabase';
-import { useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -134,6 +135,69 @@ const historicalAirports: Record<string, Airport> = {
 
 Object.assign(airports, historicalAirports);
 
+function normalizeSearchText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function cleanAirportDisplayName(name: string) {
+  return name
+    .replace(/\s+International Airport$/i, ' International')
+    .replace(/\s+Airport$/i, '')
+    .trim();
+}
+
+function getAirportSuggestionLabel(airport: Airport) {
+  return `${cleanAirportDisplayName(airport.name)} (${airport.code}) - ${airport.country}`;
+}
+
+function getAirportSuggestions(query: string) {
+  const rawQuery = query.trim();
+
+  if (rawQuery.length < 2) {
+    return [];
+  }
+
+  const upperQuery = rawQuery.toUpperCase();
+
+  if (/^[A-Z]{3}$/.test(upperQuery) && airports[upperQuery]) {
+    return [];
+  }
+
+  const cleanQuery = normalizeSearchText(rawQuery);
+
+  return Object.values(airports)
+    .map((airport) => {
+      const cleanName = normalizeSearchText(airport.name);
+      const cleanDisplayName = normalizeSearchText(cleanAirportDisplayName(airport.name));
+      const cleanCode = airport.code.toLowerCase();
+
+      let score = 999;
+
+      if (cleanCode.startsWith(cleanQuery)) {
+        score = 1;
+      } else if (cleanDisplayName.startsWith(cleanQuery)) {
+        score = 2;
+      } else if (cleanName.startsWith(cleanQuery)) {
+        score = 3;
+      } else if (cleanDisplayName.includes(cleanQuery)) {
+        score = 4;
+      } else if (cleanName.includes(cleanQuery)) {
+        score = 5;
+      } else {
+        return null;
+      }
+
+      return { airport, score };
+    })
+    .filter((item): item is { airport: Airport; score: number } => item !== null)
+    .sort((a, b) => a.score - b.score || a.airport.name.localeCompare(b.airport.name))
+    .slice(0, 8)
+    .map((item) => item.airport);
+}
+
 function degreesToRadians(value: number) {
   return (value * Math.PI) / 180;
 }
@@ -262,6 +326,68 @@ function getImportedPurpose(row: Record<string, any>) {
 }
 
 
+const POPULAR_AIRLINES = [
+  'Ryanair',
+  'easyJet',
+  'Wizz Air',
+  'Vueling',
+  'Lufthansa',
+  'British Airways',
+  'Turkish Airlines',
+  'Air France',
+  'KLM',
+  'Iberia',
+  'Jet2',
+  'Pegasus Airlines',
+  'SAS',
+  'TAP Air Portugal',
+  'Aer Lingus',
+  'Austrian Airlines',
+  'Swiss',
+  'Brussels Airlines',
+  'Eurowings',
+  'Norwegian',
+  'Finnair',
+  'ITA Airways',
+  'Aegean Airlines',
+  'Transavia',
+  'Volotea',
+  'TUI Airways',
+  'Riyadh Air',
+  'Emirates',
+  'Qatar Airways',
+  'Etihad Airways',
+  'American Airlines',
+  'Delta Air Lines',
+  'United Airlines',
+  'Air Canada',
+  'LATAM Airlines',
+  'Qantas',
+  'Singapore Airlines',
+  'Cathay Pacific',
+];
+
+function getAirlineSuggestions(query: string) {
+  const cleanQuery = query.trim().toLowerCase();
+
+  if (!cleanQuery) {
+    return [];
+  }
+
+  const startsWithMatches = POPULAR_AIRLINES.filter((name) =>
+    name.toLowerCase().startsWith(cleanQuery)
+  );
+
+  const containsMatches = POPULAR_AIRLINES.filter(
+    (name) =>
+      !name.toLowerCase().startsWith(cleanQuery) &&
+      name.toLowerCase().includes(cleanQuery)
+  );
+
+  return [...startsWithMatches, ...containsMatches].slice(0, 6);
+}
+
+
 export default function AppScreen() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [mode, setMode] = useState<'login' | 'signup'>('login');
@@ -272,6 +398,14 @@ export default function AppScreen() {
   const [userId, setUserId] = useState<string | null>(null);
   const [showFlightForm, setShowFlightForm] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setShowOptionsMenu(false);
+      };
+    }, [])
+  );
   const [openFlightMenuId, setOpenFlightMenuId] = useState<string | null>(null);
   const [editingFlightId, setEditingFlightId] = useState<string | null>(null);
 
@@ -991,20 +1125,11 @@ export default function AppScreen() {
                 style={styles.optionsButton}
                 onPress={() => setShowOptionsMenu((visible) => !visible)}
               >
-                <Text style={styles.optionsButtonText}>Options</Text>
+                <Text style={styles.optionsButtonText}>Data</Text>
               </TouchableOpacity>
 
               {showOptionsMenu && (
                 <View style={styles.optionsMenu}>
-                  <TouchableOpacity
-                    style={styles.optionsMenuItem}
-                    onPress={() => {
-                      setShowOptionsMenu(false);
-                      handleAboutPrivacy();
-                    }}
-                  >
-                    <Text style={styles.optionsMenuText}>About & Privacy</Text>
-                  </TouchableOpacity>
 
                   <TouchableOpacity
                     style={styles.optionsMenuItem}
@@ -1036,27 +1161,9 @@ export default function AppScreen() {
                     <Text style={styles.optionsDangerText}>Clear all flights</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={styles.optionsMenuItem}
-                    onPress={() => {
-                      setShowOptionsMenu(false);
-                      handleDeleteAccount();
-                    }}
-                  >
-                    <Text style={styles.optionsDangerText}>Delete account</Text>
-                  </TouchableOpacity>
 
                   <View style={styles.optionsDivider} />
 
-                  <TouchableOpacity
-                    style={styles.optionsMenuItem}
-                    onPress={() => {
-                      setShowOptionsMenu(false);
-                      handleLogout();
-                    }}
-                  >
-                    <Text style={styles.optionsMenuText}>Log out</Text>
-                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -1082,38 +1189,90 @@ export default function AppScreen() {
                 {editingFlightId ? 'Edit flight' : 'Add new flight'}
               </Text>
 
-              <Text style={styles.label}>Date</Text>
+              <Text style={styles.label}>Origin airport</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Example: 2026-06-24"
-                value={flightDate}
-                onChangeText={setFlightDate}
-              />
-
-              <Text style={styles.label}>Origin airport code</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Example: LHR"
-                autoCapitalize="characters"
+                placeholder="Type city or code, e.g. Valencia or VLC"
+                autoCapitalize="words"
                 value={from}
                 onChangeText={setFrom}
               />
 
-              <Text style={styles.label}>Destination airport code</Text>
+              {getAirportSuggestions(from).length > 0 && (
+                <View style={styles.suggestionBox}>
+                  {getAirportSuggestions(from).map((airport) => (
+                    <TouchableOpacity
+                      key={airport.code}
+                      style={styles.suggestionButton}
+                      onPress={() => setFrom(airport.code)}
+                    >
+                      <Text style={styles.suggestionText}>
+                        {getAirportSuggestionLabel(airport)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              <Text style={styles.label}>Destination airport</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Example: JFK"
-                autoCapitalize="characters"
+                placeholder="Type city or code, e.g. London or LHR"
+                autoCapitalize="words"
                 value={to}
                 onChangeText={setTo}
               />
 
-              <Text style={styles.label}>Airline</Text>
+              {getAirportSuggestions(to).length > 0 && (
+                <View style={styles.suggestionBox}>
+                  {getAirportSuggestions(to).map((airport) => (
+                    <TouchableOpacity
+                      key={airport.code}
+                      style={styles.suggestionButton}
+                      onPress={() => setTo(airport.code)}
+                    >
+                      <Text style={styles.suggestionText}>
+                        {getAirportSuggestionLabel(airport)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              <View style={styles.labelRow}>
+                <Text style={[styles.label, styles.labelInRow]}>Airline</Text>
+                <Text style={styles.optionalTag}>Optional</Text>
+              </View>
               <TextInput
                 style={styles.input}
                 placeholder="Example: British Airways"
                 value={airline}
                 onChangeText={setAirline}
+              />
+
+              {getAirlineSuggestions(airline).length > 0 && (
+                <View style={styles.suggestionBox}>
+                  {getAirlineSuggestions(airline).map((name) => (
+                    <TouchableOpacity
+                      key={name}
+                      style={styles.suggestionButton}
+                      onPress={() => setAirline(name)}
+                    >
+                      <Text style={styles.suggestionText}>{name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              <View style={styles.labelRow}>
+                <Text style={[styles.label, styles.labelInRow]}>Date</Text>
+                <Text style={styles.optionalTag}>Optional</Text>
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Example: 2026-06-24"
+                value={flightDate}
+                onChangeText={setFlightDate}
               />
 
               <Text style={styles.label}>Seat class</Text>
@@ -1332,6 +1491,49 @@ const styles = StyleSheet.create({
     padding: 14,
     fontSize: 16,
     marginBottom: 16,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  labelInRow: {
+    marginBottom: 0,
+  },
+  optionalTag: {
+    marginLeft: 8,
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#6b7280',
+    backgroundColor: 'white',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
+  },
+  suggestionBox: {
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 12,
+    marginTop: -10,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  suggestionButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  suggestionText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
   },
   primaryButton: {
     backgroundColor: '#2563eb',

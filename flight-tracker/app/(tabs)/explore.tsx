@@ -613,5 +613,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#4b5563',
     marginBottom: 8,
+  },  compactStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
   },
+  compactStatsColumn: {
+    gap: 8,
+  },
+  compactStatValue: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#111827',
+    textAlign: 'center',
+    flex: 1,
+  },
+  viewMoreButton: {
+    marginTop: 10,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  viewMoreButtonText: {
+    color: '#2563eb',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+
 });
