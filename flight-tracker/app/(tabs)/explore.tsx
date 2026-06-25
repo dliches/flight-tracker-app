@@ -119,6 +119,7 @@ export default function StatisticsScreen() {
   const [showMoreAirports, setShowMoreAirports] = useState(false);
   const [showMoreAirlines, setShowMoreAirlines] = useState(false);
   const [showMoreRoutes, setShowMoreRoutes] = useState(false);
+  const [showRouteMap, setShowRouteMap] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -168,9 +169,9 @@ export default function StatisticsScreen() {
   const totalKm = flights.reduce((sum, flight) => sum + flight.distanceKm, 0);
   const totalMiles = Math.round(totalKm * 0.621371);
   const totalMinutes = flights.reduce((sum, flight) => sum + flight.durationMinutes, 0);
-  const totalHours = Math.round(totalMinutes / 60);
-  const totalWeeks = totalMinutes / 60 / 24 / 7;
-  const totalMonths = totalMinutes / 60 / 24 / 30.44;
+  const totalHours = totalMinutes ? Math.round(totalMinutes / 60) : 0;
+  const totalWeeks = totalMinutes ? totalMinutes / 60 / 24 / 7 : 0;
+  const totalMonths = totalMinutes ? totalMinutes / 60 / 24 / 30.44 : 0;
 
   const longestDistanceFlight = [...flights].sort((a, b) => b.distanceKm - a.distanceKm)[0];
   const shortestDistanceFlight = [...flights].sort((a, b) => a.distanceKm - b.distanceKm)[0];
@@ -185,9 +186,9 @@ export default function StatisticsScreen() {
   const topAirports = countItems(flights.flatMap((flight) => [flight.from, flight.to]));
   const topAirlines = countItems(flights.map((flight) => flight.airline));
   const topRoutes = countItems(flights.map((flight) => `${flight.from} → ${flight.to}`));
-  const visibleTopAirports = showMoreAirports ? topAirports.slice(0, 20) : topAirports.slice(0, 10);
-  const visibleTopAirlines = showMoreAirlines ? topAirlines.slice(0, 20) : topAirlines.slice(0, 10);
-  const visibleTopRoutes = showMoreRoutes ? topRoutes.slice(0, 20) : topRoutes.slice(0, 10);
+  const visibleTopAirports = totalFlights ? (showMoreAirports ? topAirports.slice(0, 20) : topAirports.slice(0, 10)) : [];
+  const visibleTopAirlines = totalFlights ? (showMoreAirlines ? topAirlines.slice(0, 20) : topAirlines.slice(0, 10)) : [];
+  const visibleTopRoutes = totalFlights ? (showMoreRoutes ? topRoutes.slice(0, 20) : topRoutes.slice(0, 10)) : [];
   const flightTypes = countItems(flights.map((flight) => flight.flightType || 'Other flights'));
   const seatClasses = countItems(flights.map((flight) => flight.seatClass));
   const flightPurposes = countItems(flights.map((flight) => flight.purpose));
@@ -325,46 +326,58 @@ export default function StatisticsScreen() {
               <Text style={styles.sectionTitle}>Route Map</Text>
 
               <Text style={styles.rowText}>
-                Showing {uniqueRouteFlights.length} unique routes from {routeFlights.length} flights.
+                {uniqueRouteFlights.length} unique routes from {routeFlights.length} flights.
               </Text>
 
-              <MapView
-                style={styles.map}
-                initialRegion={{
-                  latitude: mapCenter.latitude,
-                  longitude: mapCenter.longitude,
-                  latitudeDelta: 80,
-                  longitudeDelta: 80,
-                }}
+              <TouchableOpacity
+                style={styles.viewMoreButton}
+                onPress={() => setShowRouteMap((visible) => !visible)}
               >
-                {uniqueRouteFlights.map((flight) => (
-                  <Polyline
-                    key={flight.id}
-                    coordinates={[
-                      {
-                        latitude: Number(flight.fromLatitude),
-                        longitude: Number(flight.fromLongitude),
-                      },
-                      {
-                        latitude: Number(flight.toLatitude),
-                        longitude: Number(flight.toLongitude),
-                      },
-                    ]}
-                    strokeWidth={2}
-                  />
-                ))}
+                <Text style={styles.viewMoreButtonText}>
+                  {showRouteMap ? 'Hide map' : 'Show map'}
+                </Text>
+              </TouchableOpacity>
 
-                {airportMarkers.map((airport) => (
-                  <Marker
-                    key={airport.code}
-                    coordinate={{
-                      latitude: airport.latitude,
-                      longitude: airport.longitude,
-                    }}
-                    title={airport.code}
-                  />
-                ))}
-              </MapView>
+              {showRouteMap && (
+                <MapView
+                  key={`route-map-${routeFlights.length}-${uniqueRouteFlights.length}`}
+                  style={styles.map}
+                  initialRegion={{
+                    latitude: mapCenter.latitude,
+                    longitude: mapCenter.longitude,
+                    latitudeDelta: 80,
+                    longitudeDelta: 80,
+                  }}
+                >
+                  {uniqueRouteFlights.map((flight) => (
+                    <Polyline
+                      key={flight.id}
+                      coordinates={[
+                        {
+                          latitude: Number(flight.fromLatitude),
+                          longitude: Number(flight.fromLongitude),
+                        },
+                        {
+                          latitude: Number(flight.toLatitude),
+                          longitude: Number(flight.toLongitude),
+                        },
+                      ]}
+                      strokeWidth={2}
+                    />
+                  ))}
+
+                  {airportMarkers.map((airport) => (
+                    <Marker
+                      key={airport.code}
+                      coordinate={{
+                        latitude: airport.latitude,
+                        longitude: airport.longitude,
+                      }}
+                      title={airport.code}
+                    />
+                  ))}
+                </MapView>
+              )}
             </View>
           )}
 

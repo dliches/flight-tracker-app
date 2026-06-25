@@ -439,6 +439,11 @@ export default function AppScreen() {
       return;
     }
 
+    if (fromCode === toCode) {
+      Alert.alert('Invalid route', 'Departure and arrival airport must be different.');
+      return;
+    }
+
     const fromAirport = airports[fromCode];
     const toAirport = airports[toCode];
 
@@ -526,6 +531,8 @@ export default function AppScreen() {
   }
 
   function handleDeleteFlight(id: string) {
+    setOpenFlightMenuId(null);
+
     Alert.alert('Delete flight', 'Are you sure you want to delete this flight?', [
       {
         text: 'Cancel',
@@ -535,17 +542,29 @@ export default function AppScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          const { error } = await supabase
-            .from('flights')
-            .delete()
-            .eq('id', id);
+          try {
+            const { error } = await supabase
+              .from('flights')
+              .delete()
+              .eq('id', id);
 
-          if (error) {
-            Alert.alert('Delete failed', error.message);
-            return;
+            if (error) {
+              Alert.alert('Delete failed', error.message);
+              return;
+            }
+
+            const nextFlights = flights.filter((flight) => flight.id !== id);
+            setFlights(nextFlights);
+
+            if (email) {
+              await AsyncStorage.setItem(getStorageKey(email), JSON.stringify(nextFlights));
+            }
+          } catch (error) {
+            Alert.alert(
+              'Delete failed',
+              error instanceof Error ? error.message : 'Something went wrong while deleting this flight.'
+            );
           }
-
-          setFlights(flights.filter((flight) => flight.id !== id));
         },
       },
     ]);
