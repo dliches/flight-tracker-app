@@ -281,7 +281,6 @@ export default function StatisticsScreen() {
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.pageContent}>
       <Text style={styles.title}>Statistics</Text>
-      <Text style={styles.signedIn}>Stats for {email}</Text>
 
       {flights.length === 0 ? (
         <View style={styles.emptyCard}>

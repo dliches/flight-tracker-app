@@ -1123,7 +1123,6 @@ export default function AppScreen() {
           <View style={styles.headerRow}>
             <View style={styles.headerTextBox}>
               <Text style={styles.title}>FlightData</Text>
-              <Text style={styles.signedIn}>Signed in as {email}</Text>
             </View>
 
             <View style={styles.optionsWrapper}>
