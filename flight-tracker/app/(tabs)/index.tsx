@@ -813,6 +813,46 @@ export default function AppScreen() {
     );
   }
 
+  function handleDeleteAccount() {
+    Alert.alert(
+      'Delete account?',
+      'This will permanently delete your account and all your flights. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete account',
+          style: 'destructive',
+          onPress: async () => {
+            const accountEmail = email;
+
+            const { error } = await supabase.rpc('delete_current_user');
+
+            if (error) {
+              Alert.alert('Could not delete account', error.message);
+              return;
+            }
+
+            if (accountEmail) {
+              await AsyncStorage.removeItem(getStorageKey(accountEmail));
+            }
+
+            await AsyncStorage.removeItem('currentUserEmail');
+
+            setUserId(null);
+            setIsLoggedIn(false);
+            setFlights([]);
+            setEmail('');
+            setShowFlightForm(false);
+            setShowOptionsMenu(false);
+            resetFlightForm();
+
+            await supabase.auth.signOut();
+          },
+        },
+      ]
+    );
+  }
+
   async function handleLogout() {
     await AsyncStorage.removeItem('currentUserEmail');
     await supabase.auth.signOut();
@@ -958,6 +998,16 @@ export default function AppScreen() {
                     }}
                   >
                     <Text style={styles.optionsDangerText}>Clear all flights</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.optionsMenuItem}
+                    onPress={() => {
+                      setShowOptionsMenu(false);
+                      handleDeleteAccount();
+                    }}
+                  >
+                    <Text style={styles.optionsDangerText}>Delete account</Text>
                   </TouchableOpacity>
 
                   <View style={styles.optionsDivider} />
