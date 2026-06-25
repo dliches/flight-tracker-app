@@ -813,6 +813,13 @@ export default function AppScreen() {
     );
   }
 
+  function handleAboutPrivacy() {
+    Alert.alert(
+      'About & Privacy',
+      'Flight Tracker saves your flights to your private account. Your flight data is not public. You can export your flights, clear your flights, or delete your account from Options. We do not sell your data.'
+    );
+  }
+
   function handleDeleteAccount() {
     Alert.alert(
       'Delete account?',
@@ -970,6 +977,16 @@ export default function AppScreen() {
 
               {showOptionsMenu && (
                 <View style={styles.optionsMenu}>
+                  <TouchableOpacity
+                    style={styles.optionsMenuItem}
+                    onPress={() => {
+                      setShowOptionsMenu(false);
+                      handleAboutPrivacy();
+                    }}
+                  >
+                    <Text style={styles.optionsMenuText}>About & Privacy</Text>
+                  </TouchableOpacity>
+
                   <TouchableOpacity
                     style={styles.optionsMenuItem}
                     onPress={() => {
