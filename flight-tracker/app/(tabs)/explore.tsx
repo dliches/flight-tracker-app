@@ -4,6 +4,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -109,12 +110,15 @@ function countItems(items: string[]) {
   return Object.entries(counts)
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
+    .slice(0, 20);
 }
 
 export default function StatisticsScreen() {
   const [email, setEmail] = useState('');
   const [flights, setFlights] = useState<Flight[]>([]);
+  const [showMoreAirports, setShowMoreAirports] = useState(false);
+  const [showMoreAirlines, setShowMoreAirlines] = useState(false);
+  const [showMoreRoutes, setShowMoreRoutes] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -164,6 +168,9 @@ export default function StatisticsScreen() {
   const totalKm = flights.reduce((sum, flight) => sum + flight.distanceKm, 0);
   const totalMiles = Math.round(totalKm * 0.621371);
   const totalMinutes = flights.reduce((sum, flight) => sum + flight.durationMinutes, 0);
+  const totalHours = Math.round(totalMinutes / 60);
+  const totalWeeks = totalMinutes / 60 / 24 / 7;
+  const totalMonths = totalMinutes / 60 / 24 / 30.44;
 
   const longestDistanceFlight = [...flights].sort((a, b) => b.distanceKm - a.distanceKm)[0];
   const shortestDistanceFlight = [...flights].sort((a, b) => a.distanceKm - b.distanceKm)[0];
@@ -178,6 +185,9 @@ export default function StatisticsScreen() {
   const topAirports = countItems(flights.flatMap((flight) => [flight.from, flight.to]));
   const topAirlines = countItems(flights.map((flight) => flight.airline));
   const topRoutes = countItems(flights.map((flight) => `${flight.from} → ${flight.to}`));
+  const visibleTopAirports = showMoreAirports ? topAirports.slice(0, 20) : topAirports.slice(0, 10);
+  const visibleTopAirlines = showMoreAirlines ? topAirlines.slice(0, 20) : topAirlines.slice(0, 10);
+  const visibleTopRoutes = showMoreRoutes ? topRoutes.slice(0, 20) : topRoutes.slice(0, 10);
   const flightTypes = countItems(flights.map((flight) => flight.flightType || 'Other flights'));
   const seatClasses = countItems(flights.map((flight) => flight.seatClass));
   const flightPurposes = countItems(flights.map((flight) => flight.purpose));
@@ -286,20 +296,27 @@ export default function StatisticsScreen() {
               <Text style={styles.statValue}>{totalFlights}</Text>
               <Text style={styles.statLabel}>Flights</Text>
             </View>
+          </View>
 
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{totalKm.toLocaleString()}</Text>
-              <Text style={styles.statLabel}>Kilometres</Text>
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Total Flight Time</Text>
+
+            <View style={styles.compactStatsRow}>
+              <Text style={styles.compactStatValue}>{formatDuration(totalMinutes)}</Text>
+              <Text style={styles.compactStatValue}>{totalWeeks.toFixed(1)} weeks</Text>
+              <Text style={styles.compactStatValue}>{totalMonths.toFixed(1)} months</Text>
             </View>
+          </View>
 
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{totalMiles.toLocaleString()}</Text>
-              <Text style={styles.statLabel}>Miles</Text>
-            </View>
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Distances</Text>
 
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{formatDuration(totalMinutes)}</Text>
-              <Text style={styles.statLabel}>Flight time</Text>
+            <View style={styles.compactStatsColumn}>
+              <Text style={styles.compactStatValue}>{totalKm.toLocaleString()} Kilometres</Text>
+              <Text style={styles.compactStatValue}>{totalMiles.toLocaleString()} Miles</Text>
+              <Text style={styles.compactStatValue}>{(totalKm / 40075).toFixed(2)}x Earth</Text>
+              <Text style={styles.compactStatValue}>{(totalKm / 384400).toFixed(3)}x Moon</Text>
+              <Text style={styles.compactStatValue}>{(totalKm / 149597870).toFixed(6)}x Sun</Text>
             </View>
           </View>
 
@@ -352,10 +369,60 @@ export default function StatisticsScreen() {
           )}
 
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Distance</Text>
-            <Text style={styles.rowText}>Earth circumnavigations: {(totalKm / 40075).toFixed(2)}x</Text>
-            <Text style={styles.rowText}>Trips to the Moon: {(totalKm / 384400).toFixed(3)}x</Text>
-            <Text style={styles.rowText}>Distance to the Sun: {(totalKm / 149597870).toFixed(6)}x</Text>
+            <Text style={styles.sectionTitle}>Top Airports</Text>
+            {visibleTopAirports.map((airport, index) => (
+              <Text key={airport.name} style={styles.rowText}>
+                {index + 1}. {airport.name} — {airport.count} — {formatPercent(airport.count, totalFlights * 2)}
+              </Text>
+            ))}
+            {topAirports.length > 10 && (
+              <TouchableOpacity
+                style={styles.viewMoreButton}
+                onPress={() => setShowMoreAirports((visible) => !visible)}
+              >
+                <Text style={styles.viewMoreButtonText}>
+                  {showMoreAirports ? 'View less' : 'View more'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Top Airlines</Text>
+            {visibleTopAirlines.map((airline, index) => (
+              <Text key={airline.name} style={styles.rowText}>
+                {index + 1}. {airline.name} — {airline.count} — {formatPercent(airline.count, totalFlights)}
+              </Text>
+            ))}
+            {topAirlines.length > 10 && (
+              <TouchableOpacity
+                style={styles.viewMoreButton}
+                onPress={() => setShowMoreAirlines((visible) => !visible)}
+              >
+                <Text style={styles.viewMoreButtonText}>
+                  {showMoreAirlines ? 'View less' : 'View more'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Top Routes</Text>
+            {visibleTopRoutes.map((route, index) => (
+              <Text key={route.name} style={styles.rowText}>
+                {index + 1}. {route.name} — {route.count} — {formatPercent(route.count, totalFlights)}
+              </Text>
+            ))}
+            {topRoutes.length > 10 && (
+              <TouchableOpacity
+                style={styles.viewMoreButton}
+                onPress={() => setShowMoreRoutes((visible) => !visible)}
+              >
+                <Text style={styles.viewMoreButtonText}>
+                  {showMoreRoutes ? 'View less' : 'View more'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <View style={styles.sectionCard}>
@@ -403,14 +470,6 @@ export default function StatisticsScreen() {
           </View>
 
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Additional Data</Text>
-            <Text style={styles.rowText}>Airports visited: {airportsVisited}</Text>
-            <Text style={styles.rowText}>Airlines flown: {airlinesFlown}</Text>
-            <Text style={styles.rowText}>Routes flown: {routesFlown}</Text>
-            <Text style={styles.rowText}>Countries visited: {countriesVisited}</Text>
-          </View>
-
-          <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>Flight Types</Text>
             {flightTypes.map((item) => (
               <Text key={item.name} style={styles.rowText}>
@@ -438,35 +497,10 @@ export default function StatisticsScreen() {
           </View>
 
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Top Airports</Text>
-            {topAirports.map((airport, index) => (
-              <Text key={airport.name} style={styles.rowText}>
-                {index + 1}. {airport.name} — {airport.count} — {formatPercent(airport.count, totalFlights * 2)}
-              </Text>
-            ))}
-          </View>
-
-          <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Countries Visited</Text>
-            <Text style={styles.rowText}>{countriesVisitedList.join(', ')}</Text>
-          </View>
-
-          <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Top Airlines</Text>
-            {topAirlines.map((airline, index) => (
-              <Text key={airline.name} style={styles.rowText}>
-                {index + 1}. {airline.name} — {airline.count} — {formatPercent(airline.count, totalFlights)}
-              </Text>
-            ))}
-          </View>
-
-          <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Top Routes</Text>
-            {topRoutes.map((route, index) => (
-              <Text key={route.name} style={styles.rowText}>
-                {index + 1}. {route.name} — {route.count} — {formatPercent(route.count, totalFlights)}
-              </Text>
-            ))}
+            <Text style={styles.sectionTitle}>Additional Data</Text>
+            <Text style={styles.rowText}>Airports visited: {airportsVisited}</Text>
+            <Text style={styles.rowText}>Airlines flown: {airlinesFlown}</Text>
+            <Text style={styles.rowText}>Routes flown: {routesFlown}</Text>
           </View>
         </>
       )}

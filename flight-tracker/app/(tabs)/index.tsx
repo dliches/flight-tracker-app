@@ -271,6 +271,8 @@ export default function AppScreen() {
   const [flights, setFlights] = useState<Flight[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [showFlightForm, setShowFlightForm] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [openFlightMenuId, setOpenFlightMenuId] = useState<string | null>(null);
   const [editingFlightId, setEditingFlightId] = useState<string | null>(null);
 
   const [flightDate, setFlightDate] = useState('');
@@ -918,27 +920,72 @@ export default function AppScreen() {
               <Text style={styles.signedIn}>Signed in as {email}</Text>
             </View>
 
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Text style={styles.logoutText}>Log out</Text>
-            </TouchableOpacity>
+            <View style={styles.optionsWrapper}>
+              <TouchableOpacity
+                style={styles.optionsButton}
+                onPress={() => setShowOptionsMenu((visible) => !visible)}
+              >
+                <Text style={styles.optionsButtonText}>Options</Text>
+              </TouchableOpacity>
+
+              {showOptionsMenu && (
+                <View style={styles.optionsMenu}>
+                  <TouchableOpacity
+                    style={styles.optionsMenuItem}
+                    onPress={() => {
+                      setShowOptionsMenu(false);
+                      handleImportExcel();
+                    }}
+                  >
+                    <Text style={styles.optionsMenuText}>Import Excel</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.optionsMenuItem}
+                    onPress={() => {
+                      setShowOptionsMenu(false);
+                      handleExportExcel();
+                    }}
+                  >
+                    <Text style={styles.optionsMenuText}>Export Excel</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.optionsMenuItem}
+                    onPress={() => {
+                      setShowOptionsMenu(false);
+                      handleClearAllFlights();
+                    }}
+                  >
+                    <Text style={styles.optionsDangerText}>Clear all flights</Text>
+                  </TouchableOpacity>
+
+                  <View style={styles.optionsDivider} />
+
+                  <TouchableOpacity
+                    style={styles.optionsMenuItem}
+                    onPress={() => {
+                      setShowOptionsMenu(false);
+                      handleLogout();
+                    }}
+                  >
+                    <Text style={styles.optionsMenuText}>Log out</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
           </View>
 
           {!showFlightForm && (
             <View style={styles.actionsRow}>
-              <TouchableOpacity style={styles.primaryButton} onPress={openAddFlightForm}>
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={() => {
+                  setShowOptionsMenu(false);
+                  openAddFlightForm();
+                }}
+              >
                 <Text style={styles.primaryButtonText}>Add Flight</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.secondaryButton} onPress={handleImportExcel}>
-                <Text style={styles.secondaryButtonText}>Import Excel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.secondaryButton} onPress={handleExportExcel}>
-                <Text style={styles.secondaryButtonText}>Export Excel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.dangerButton} onPress={handleClearAllFlights}>
-                <Text style={styles.dangerButtonText}>Clear All Flights</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -1044,41 +1091,78 @@ export default function AppScreen() {
 
           {!showFlightForm &&
             flights.map((flight) => (
-              <View key={flight.id} style={styles.flightCard}>
+              <View
+                key={flight.id}
+                style={[
+                  styles.flightCard,
+                  openFlightMenuId === flight.id && styles.flightCardOpen,
+                ]}
+              >
                 <View style={styles.flightTopRow}>
                   <Text style={styles.routeText}>
                     {flight.from} → {flight.to}
                   </Text>
-                  <Text style={styles.distanceText}>{flight.distanceKm.toLocaleString()} km</Text>
+
+                  <View style={styles.flightMetrics}>
+                    <Text style={styles.distanceText}>{flight.distanceKm.toLocaleString()} km</Text>
+                    <Text style={styles.durationText}>{formatDuration(flight.durationMinutes)}</Text>
+                  </View>
+
+                  <View style={styles.flightMenuWrapper}>
+                    <TouchableOpacity
+                      style={styles.flightMenuButton}
+                      onPress={() =>
+                        setOpenFlightMenuId((currentId) =>
+                          currentId === flight.id ? null : flight.id
+                        )
+                      }
+                    >
+                      <Text style={styles.flightMenuButtonText}>...</Text>
+                    </TouchableOpacity>
+
+                    {openFlightMenuId === flight.id && (
+                      <View style={styles.flightMenu}>
+                        <TouchableOpacity
+                          style={styles.flightMenuItem}
+                          onPress={() => {
+                            setOpenFlightMenuId(null);
+                            handleEditFlight(flight);
+                          }}
+                        >
+                          <Text style={styles.flightMenuText}>Edit</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.flightMenuItem}
+                          onPress={() => {
+                            setOpenFlightMenuId(null);
+                            handleDeleteFlight(flight.id);
+                          }}
+                        >
+                          <Text style={styles.flightMenuDangerText}>Delete</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
                 </View>
 
-                <Text style={styles.flightDetail}>Date: {flight.date || 'No date'}</Text>
-                <Text style={styles.flightDetail}>Airline: {flight.airline}</Text>
-                <Text style={styles.flightDetail}>Class: {flight.seatClass}</Text>
-                <Text style={styles.flightDetail}>Purpose: {flight.purpose}</Text>
-                <Text style={styles.flightDetail}>Type: {flight.flightType || 'Other flights'}</Text>
-                <Text style={styles.flightDetail}>
-                  Countries: {flight.fromCountry || 'Unknown'} → {flight.toCountry || 'Unknown'}
-                </Text>
-                <Text style={styles.flightDetail}>
-                  Duration: {formatDuration(flight.durationMinutes)}
-                </Text>
-
-                <View style={styles.flightActions}>
-                  <TouchableOpacity
-                    style={styles.editFlightButton}
-                    onPress={() => handleEditFlight(flight)}
-                  >
-                    <Text style={styles.editFlightButtonText}>Edit</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.deleteFlightButton}
-                    onPress={() => handleDeleteFlight(flight.id)}
-                  >
-                    <Text style={styles.deleteFlightButtonText}>Delete</Text>
-                  </TouchableOpacity>
-                </View>
+                {[
+                  flight.airline,
+                  flight.seatClass,
+                  flight.purpose,
+                  flight.date,
+                ].filter((detail) => detail && detail !== 'Not specified').length > 0 && (
+                  <Text style={styles.flightMeta}>
+                    {[
+                      flight.airline,
+                      flight.seatClass,
+                      flight.purpose,
+                      flight.date,
+                    ]
+                      .filter((detail) => detail && detail !== 'Not specified')
+                      .join(' · ')}
+                  </Text>
+                )}
               </View>
             ))}
         </ScrollView>
@@ -1235,15 +1319,57 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 4,
   },
-  logoutButton: {
-    backgroundColor: '#fee2e2',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
+  optionsWrapper: {
+    position: 'relative',
+    alignItems: 'flex-end',
+    zIndex: 20,
   },
-  logoutText: {
-    color: '#b91c1c',
-    fontWeight: '900',
+  optionsButton: {
+    backgroundColor: '#111827',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+  },
+  optionsButtonText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  optionsMenu: {
+    position: 'absolute',
+    top: 46,
+    right: 0,
+    width: 190,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    zIndex: 30,
+  },
+  optionsMenuItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  optionsMenuText: {
+    color: '#111827',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  optionsDangerText: {
+    color: '#dc2626',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  optionsDivider: {
+    height: 1,
+    backgroundColor: '#e5e7eb',
+    marginVertical: 4,
   },
   actionsRow: {
     gap: 12,
@@ -1319,33 +1445,112 @@ const styles = StyleSheet.create({
   },
   flightCard: {
     backgroundColor: 'white',
-    borderRadius: 18,
-    padding: 18,
+    borderRadius: 14,
+    padding: 12,
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    marginBottom: 14,
+    marginBottom: 10,
+    position: 'relative',
+    zIndex: 1,
+    overflow: 'visible',
+  },
+  flightCardOpen: {
+    zIndex: 999,
+    elevation: 20,
   },
   flightTopRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 10,
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 6,
+    zIndex: 10,
   },
   routeText: {
     flex: 1,
-    fontSize: 22,
+    fontSize: 19,
     fontWeight: '900',
     color: '#111827',
   },
+  flightMetrics: {
+    width: 86,
+    alignItems: 'center',
+    paddingTop: 1,
+  },
   distanceText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '900',
     color: '#2563eb',
+    textAlign: 'center',
+  },
+  durationText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6b7280',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  flightMenuWrapper: {
+    width: 40,
+    alignItems: 'flex-end',
+    position: 'relative',
+    zIndex: 20,
+  },
+  flightMenuButton: {
+    minWidth: 34,
+    height: 30,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#f9fafb',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  flightMenuButtonText: {
+    color: '#111827',
+    fontSize: 16,
+    fontWeight: '900',
+    marginTop: -6,
+  },
+  flightMenu: {
+    position: 'absolute',
+    top: 34,
+    right: 0,
+    width: 110,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 30,
+    zIndex: 1000,
+  },
+  flightMenuItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  flightMenuText: {
+    color: '#111827',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  flightMenuDangerText: {
+    color: '#dc2626',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  flightMeta: {
+    fontSize: 13,
+    color: '#4b5563',
+    marginBottom: 2,
   },
   flightDetail: {
-    fontSize: 15,
+    fontSize: 13,
     color: '#4b5563',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   flightActions: {
     flexDirection: 'row',
