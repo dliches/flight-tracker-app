@@ -261,14 +261,6 @@ function getImportedPurpose(row: Record<string, any>) {
   return value;
 }
 
-function getFlightSignature(flight: Flight) {
-  return [
-    flight.date || 'no-date',
-    flight.from,
-    flight.to,
-    flight.airline || 'Not specified',
-  ].join('|').toLowerCase();
-}
 
 export default function AppScreen() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -657,16 +649,11 @@ export default function AppScreen() {
         return;
       }
 
-      const existingSignatures = new Set(flights.map(getFlightSignature));
-      const newImportedFlights = importedFlights.filter(
-        (flight) => !existingSignatures.has(getFlightSignature(flight))
-      );
-      const duplicateCount = importedFlights.length - newImportedFlights.length;
+      const newImportedFlights = importedFlights;
 
       const skippedPreview = skippedRows.slice(0, 8).join('\n');
       const previewMessage =
-        `${newImportedFlights.length} new flights found.\n` +
-        `${duplicateCount} duplicates detected.\n` +
+        `${newImportedFlights.length} flights found.\n` +
         `${skippedRows.length} rows skipped.\n\n` +
         `${skippedPreview}`;
 
@@ -722,7 +709,7 @@ export default function AppScreen() {
 
               Alert.alert(
                 'Import complete',
-                `${savedImportedFlights.length} new flights imported.\n${duplicateCount} duplicates skipped.\n${skippedRows.length} rows skipped.`
+                `${savedImportedFlights.length} flights imported.\n${skippedRows.length} rows skipped.`
               );
             },
           },

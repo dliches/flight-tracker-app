@@ -6,3 +6,5 @@ node_modules/
 dist/
 web-build/
 flight-tracker-sdk56-backup/
+flight-tracker/.claude/
+flight-tracker/backups/
