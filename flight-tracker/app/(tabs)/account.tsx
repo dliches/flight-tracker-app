@@ -40,7 +40,8 @@ export default function AccountScreen() {
       return;
     }
 
-    router.replace('/');
+    setEmail('');
+    router.replace('/login' as any);
   }
 
   function confirmDeleteAccount() {
@@ -68,7 +69,7 @@ export default function AccountScreen() {
 
     await supabase.auth.signOut();
     Alert.alert('Account deleted', 'Your account and saved flights have been deleted.');
-    router.replace('/');
+    router.replace('/login' as any);
   }
 
   return (
