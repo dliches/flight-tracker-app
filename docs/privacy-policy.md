@@ -28,4 +28,7 @@ Deleting an account permanently removes the user's account and saved flights.
 
 ## Contact
 
-For privacy questions, contact the app owner.
+For privacy questions, contact:
+
+Daniel Pulleiro  
+daniel.pulleiro83@gmail.com

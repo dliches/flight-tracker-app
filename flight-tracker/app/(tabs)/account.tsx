@@ -92,8 +92,9 @@ export default function AccountScreen() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Developer</Text>
           <Text style={styles.bodyText}>Daniel Pulleiro</Text>
+          <Text style={styles.bodyText}>Contact: daniel.pulleiro83@gmail.com</Text>
           <Text style={styles.smallText}>
-            Developer contact details can be added here before App Store release.
+            Independent developer of Flight Tracker.
           </Text>
         </View>
 
