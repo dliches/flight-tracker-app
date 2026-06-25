@@ -374,6 +374,12 @@ function getAirlineSuggestions(query: string) {
     return [];
   }
 
+  const exactMatch = POPULAR_AIRLINES.some((name) => name.toLowerCase() === cleanQuery);
+
+  if (exactMatch) {
+    return [];
+  }
+
   const startsWithMatches = POPULAR_AIRLINES.filter((name) =>
     name.toLowerCase().startsWith(cleanQuery)
   );
